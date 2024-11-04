@@ -1,33 +1,39 @@
 package main
 
+import (
+	"fmt"
+	"sync"
+)
+
 func MergeSort(arr []int) []int {
 	if len(arr) <= 1 {
 		return arr
 	}
 
-	leftChan := make(chan []int)
-	rightChan := make(chan []int)
+	// Otherwise, use parallel recursion with goroutines.
+	var wg sync.WaitGroup
+	var left, right []int
 
+	wg.Add(2)
 	go func() {
-		leftChan <- MergeSort(arr[:len(arr)/2])
+		defer wg.Done()
+		left = MergeSort(arr[:len(arr)/2])
 	}()
-
 	go func() {
-		rightChan <- MergeSort(arr[len(arr)/2:])
+		defer wg.Done()
+		right = MergeSort(arr[len(arr)/2:])
 	}()
-
-	left, right := <-leftChan, <-rightChan
+	wg.Wait()
 
 	return merge(left, right)
 }
 
+// merge combines two sorted slices into one sorted slice.
 func merge(left, right []int) []int {
-	result := make([]int, len(left)+len(right))
-
+	result := make([]int, 0, len(left)+len(right))
 	i, j := 0, 0
-
 	for i < len(left) && j < len(right) {
-		if left[i] < right[i] {
+		if left[i] < right[j] {
 			result = append(result, left[i])
 			i++
 		} else {
@@ -35,9 +41,13 @@ func merge(left, right []int) []int {
 			j++
 		}
 	}
-
 	result = append(result, left[i:]...)
 	result = append(result, right[j:]...)
-
 	return result
+}
+
+func main() {
+	arr := []int{38, 27, 43, 3, 9, 82, 10}
+	sortedArr := MergeSort(arr)
+	fmt.Println("Sorted array:", sortedArr)
 }
